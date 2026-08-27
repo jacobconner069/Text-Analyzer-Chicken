@@ -1,3 +1,4 @@
+#import appropriate libraries
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -19,6 +20,7 @@ nltk.download('punkt_tab')
 
 lemmatizer = WordNetLemmatizer()
 
+#collect the text from a given url connected to a web page
 def getPageText(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (compatible; student-assignment/1.0)'}
@@ -38,7 +40,8 @@ def getPageText(url):
     except Exception as e:
         print(f"Error occurred while fetching page text from {url}: {e}")
         return ""
-    
+
+#collect the first 20 unique links from the web page 
 def getLinks(url, limit=20):
     headers = {'User-Agent': 'Mozilla/5.0 (compatible; student-assignment/1.0)'}
     response = requests.get(url, headers=headers)
@@ -68,6 +71,7 @@ def getLinks(url, limit=20):
             break
     return valid_links
 
+#calls the getLinks and getPageText functions to gather all the text to process
 def scrape():
     urlStart = "https://en.wikipedia.org/wiki/Chicken"
     urls = []
@@ -77,6 +81,7 @@ def scrape():
         urls.append({"id": i+1, "url": link, "text": getPageText(link)})
     return urls
 
+#preprocess the text before use
 def preprocess(text):
 
     # Convert to lowercase
@@ -94,12 +99,14 @@ def preprocess(text):
     tokens = [lemmatizer.lemmatize(word) for word in tokens]
     return tokens
 
+#performs the preprocess function on each of the web pages
 def analyze(urls):
     cleaned = []
     for url in urls:
         cleaned.append({"id": url["id"], "url": url["url"], "tokens": preprocess(url["text"])})
     return cleaned
 
+#makes a dataframe of the information from each of the web pages
 def makeDataset(urls, cleaned):
     data = []
     for url, clean in zip(urls, cleaned):
@@ -108,6 +115,7 @@ def makeDataset(urls, cleaned):
     df.to_csv('data.csv', index=False)
     return df
 
+#determines the top 5 most commonly used words from each of the web pages and creates a csv file containing them
 def topWords(cleaned):
     rows = []
     for doc in cleaned:
@@ -120,6 +128,7 @@ def topWords(cleaned):
     df = pd.DataFrame(rows)
     df.to_csv('top5Words.csv',index=False, header=False)
 
+#calculates the document similarity between each of the documents
 def similarity(cleaned):
     documents = [' '.join(doc["tokens"]) for doc in cleaned if doc["tokens"]]
     vectorizer = TfidfVectorizer()
@@ -127,6 +136,7 @@ def similarity(cleaned):
     similarity_matrix = cosine_similarity(tfidf_matrix)
     return similarity_matrix
 
+#creates a heatmap to visualize the document similarity
 def visualize(similarity_matrix,labels):
     plt.figure(figsize=(15,15))
     sns.heatmap(similarity_matrix, xticklabels=labels, yticklabels=labels, cmap='coolwarm',annot=False)
@@ -136,6 +146,7 @@ def visualize(similarity_matrix,labels):
     plt.savefig('similarity_heatmap.png')
     plt.close()
 
+#main method including function calls to run the program
 def main():
     urls = scrape()
     for u in urls:
